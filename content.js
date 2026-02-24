@@ -28,8 +28,8 @@ function extractTweetText(article) {
   return normalizeText(node.innerText);
 }
 
-function speak(text) {
-  if (!settings.enabled || !text) {
+function speak(text, force = false) {
+  if ((!settings.enabled && !force) || !text) {
     return;
   }
 
@@ -60,6 +60,23 @@ function handleArticle(article) {
 
   speak(text);
   console.log("[X Pro Readout] New post:", text);
+}
+
+function getLatestArticleText() {
+  const latestArticle = document.querySelector("article[data-testid='tweet']");
+  if (!latestArticle) {
+    return "";
+  }
+  return extractTweetText(latestArticle);
+}
+
+function readLatestNow() {
+  const text = getLatestArticleText();
+  if (!text) {
+    return { ok: false, message: "未找到可朗读的最新动态" };
+  }
+  speak(text, true);
+  return { ok: true, message: "已朗读最新动态", text };
 }
 
 function scanExistingArticles() {
@@ -116,6 +133,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
   if (changes.volume) {
     settings.volume = Number(changes.volume.newValue) || 1;
+  }
+});
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "READ_LATEST") {
+    sendResponse(readLatestNow());
   }
 });
 

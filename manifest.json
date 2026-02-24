@@ -3,7 +3,7 @@
   "name": "X Pro Readout",
   "version": "1.0.0",
   "description": "Auto read new posts on X Pro using browser speech synthesis.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://pro.x.com/*"],
   "content_scripts": [
     {
