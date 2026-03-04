@@ -1,7 +1,8 @@
 const DEFAULT_SETTINGS = {
   enabled: true,
   rate: 1,
-  volume: 1
+  volume: 1,
+  voiceName: ""
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -28,6 +29,22 @@ function extractTweetText(article) {
   return normalizeText(node.innerText);
 }
 
+function getVoiceList() {
+  return window.speechSynthesis.getVoices().map((voice) => ({
+    name: voice.name,
+    lang: voice.lang,
+    default: voice.default
+  }));
+}
+
+function pickVoiceByName(voiceName) {
+  if (!voiceName) {
+    return null;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  return voices.find((voice) => voice.name === voiceName) || null;
+}
+
 function speak(text, force = false) {
   if ((!settings.enabled && !force) || !text) {
     return;
@@ -37,6 +54,13 @@ function speak(text, force = false) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = settings.rate;
   utterance.volume = settings.volume;
+
+  const selectedVoice = pickVoiceByName(settings.voiceName);
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+    utterance.lang = selectedVoice.lang;
+  }
+
   window.speechSynthesis.speak(utterance);
 }
 
@@ -115,7 +139,8 @@ function loadSettings() {
     settings = {
       enabled: Boolean(loaded.enabled),
       rate: Number(loaded.rate) || 1,
-      volume: Number(loaded.volume) || 1
+      volume: Number(loaded.volume) || 1,
+      voiceName: typeof loaded.voiceName === "string" ? loaded.voiceName : ""
     };
   });
 }
@@ -134,16 +159,29 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.volume) {
     settings.volume = Number(changes.volume.newValue) || 1;
   }
+  if (changes.voiceName) {
+    settings.voiceName = typeof changes.voiceName.newValue === "string" ? changes.voiceName.newValue : "";
+  }
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "READ_LATEST") {
     sendResponse(readLatestNow());
+    return;
+  }
+
+  if (message?.type === "LIST_VOICES") {
+    sendResponse({ ok: true, voices: getVoiceList() });
   }
 });
 
 (function init() {
   loadSettings();
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      console.log("[X Pro Readout] voices updated");
+    };
+  }
   scanExistingArticles();
   startObserver();
   console.log("[X Pro Readout] initialized");
