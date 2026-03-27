@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "X Following Auto Readout",
+  "version": "1.0.0",
+  "description": "自动刷新 x.com/home 的 Following 页面并朗读最新内容。",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "action": {
+    "default_title": "X Following Readout",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
