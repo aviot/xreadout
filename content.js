@@ -8,7 +8,7 @@
   };
 
   let settings = { ...DEFAULT_SETTINGS };
-  let refreshTimer = null;
+  let checkTimer = null;
   const seenIds = new Set();
 
   function isHomePage() {
@@ -93,15 +93,42 @@
     }
   }
 
+  function findNewPostsBanner() {
+    const candidates = Array.from(
+      document.querySelectorAll('button, [role="button"], a[role="link"]')
+    );
+
+    const pattern =
+      /(show|view|see).*(new|posts|post)|new posts|new post|查看|显示|新动态|新贴文|新推文|最新消息/i;
+
+    return candidates.find((node) => {
+      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) return false;
+      if (!pattern.test(text)) return false;
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+  }
+
+  function clickNewPostsBanner() {
+    const banner = findNewPostsBanner();
+    if (!banner) return false;
+    banner.click();
+    return true;
+  }
+
   function scheduleRefresh() {
-    if (refreshTimer) clearInterval(refreshTimer);
+    if (checkTimer) clearInterval(checkTimer);
     if (!settings.enabled) return;
 
     const interval = Math.max(15, settings.intervalSec) * 1000;
-    refreshTimer = window.setInterval(() => {
+    checkTimer = window.setInterval(() => {
       if (!isHomePage()) return;
       ensureFollowingTab();
-      window.location.reload();
+      const clicked = clickNewPostsBanner();
+      if (clicked) {
+        setTimeout(readLatest, 1200);
+      }
     }, interval);
   }
 
