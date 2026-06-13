@@ -5,6 +5,8 @@ const DEFAULT_SETTINGS = {
   voiceName: ""
 };
 
+const FOLLOWING_TAB_PATTERN = /^(Following|正在关注)(\s|$)/i;
+
 let settings = { ...DEFAULT_SETTINGS };
 const seen = new Set();
 
@@ -64,7 +66,36 @@ function speak(text, force = false) {
   window.speechSynthesis.speak(utterance);
 }
 
+function getFollowingTab() {
+  return [...document.querySelectorAll('[role="tab"]')].find((tab) =>
+    FOLLOWING_TAB_PATTERN.test(normalizeText(tab.textContent))
+  );
+}
+
+function ensureFollowingTimeline() {
+  const tab = getFollowingTab();
+  if (!tab) {
+    return false;
+  }
+
+  if (tab.getAttribute("aria-selected") !== "true") {
+    tab.click();
+  }
+
+  return true;
+}
+
+function isFollowingTimelineActive() {
+  const tab = getFollowingTab();
+  return !tab || tab.getAttribute("aria-selected") === "true";
+}
+
 function handleArticle(article) {
+  if (!isFollowingTimelineActive()) {
+    ensureFollowingTimeline();
+    return;
+  }
+
   const text = extractTweetText(article);
   if (!text) {
     return;
@@ -83,10 +114,11 @@ function handleArticle(article) {
   }
 
   speak(text);
-  console.log("[X Pro Readout] New post:", text);
+  console.log("[X Following Readout] New post:", text);
 }
 
 function getLatestArticleText() {
+  ensureFollowingTimeline();
   const latestArticle = document.querySelector("article[data-testid='tweet']");
   if (!latestArticle) {
     return "";
@@ -97,13 +129,14 @@ function getLatestArticleText() {
 function readLatestNow() {
   const text = getLatestArticleText();
   if (!text) {
-    return { ok: false, message: "未找到可朗读的最新动态" };
+    return { ok: false, message: "未找到可朗读的 Following 最新动态" };
   }
   speak(text, true);
-  return { ok: true, message: "已朗读最新动态", text };
+  return { ok: true, message: "已朗读 Following 最新动态", text };
 }
 
 function scanExistingArticles() {
+  ensureFollowingTimeline();
   document
     .querySelectorAll("article[data-testid='tweet']")
     .forEach((article) => handleArticle(article));
@@ -111,6 +144,8 @@ function scanExistingArticles() {
 
 function startObserver() {
   const observer = new MutationObserver((mutations) => {
+    ensureFollowingTimeline();
+
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
         if (!(node instanceof HTMLElement)) {
@@ -177,12 +212,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 (function init() {
   loadSettings();
+  ensureFollowingTimeline();
   if (window.speechSynthesis.onvoiceschanged !== undefined) {
     window.speechSynthesis.onvoiceschanged = () => {
-      console.log("[X Pro Readout] voices updated");
+      console.log("[X Following Readout] voices updated");
     };
   }
   scanExistingArticles();
   startObserver();
-  console.log("[X Pro Readout] initialized");
+  window.setInterval(scanExistingArticles, 5000);
+  console.log("[X Following Readout] initialized");
 })();

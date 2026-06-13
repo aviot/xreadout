@@ -1,19 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "X Pro Readout",
+  "name": "X Following Readout",
   "version": "1.0.0",
-  "description": "Auto read new posts on X Pro using browser speech synthesis.",
+  "description": "Auto read new posts from the X Following timeline using browser speech synthesis.",
   "permissions": ["storage", "activeTab"],
-  "host_permissions": ["https://pro.x.com/*"],
+  "host_permissions": ["https://x.com/home*"],
   "content_scripts": [
     {
-      "matches": ["https://pro.x.com/*"],
+      "matches": ["https://x.com/home*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_title": "X Pro Readout",
+    "default_title": "X Following Readout",
     "default_popup": "popup.html"
   }
 }

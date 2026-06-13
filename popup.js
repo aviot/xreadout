@@ -54,7 +54,7 @@ function fillVoiceSelect(voices, selectedVoiceName) {
   voiceSelect.value = selectedVoiceName || "";
 }
 
-function queryActiveXProTab(callback) {
+function queryActiveXHomeTab(callback) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const activeTab = tabs?.[0];
     if (!activeTab?.id) {
@@ -63,8 +63,8 @@ function queryActiveXProTab(callback) {
       return;
     }
 
-    if (!activeTab.url?.startsWith("https://pro.x.com/")) {
-      setStatus("请先切换到 pro.x.com 页面", true);
+    if (!activeTab.url || !/^https:\/\/x\.com\/home(?:[/?#]|$)/.test(activeTab.url)) {
+      setStatus("请先切换到 https://x.com/home 页面", true);
       callback(null);
       return;
     }
@@ -75,7 +75,7 @@ function queryActiveXProTab(callback) {
 }
 
 function loadVoices(selectedVoiceName) {
-  queryActiveXProTab((tabId) => {
+  queryActiveXHomeTab((tabId) => {
     if (!tabId) {
       fillVoiceSelect([], selectedVoiceName);
       return;
@@ -83,7 +83,7 @@ function loadVoices(selectedVoiceName) {
 
     chrome.tabs.sendMessage(tabId, { type: "LIST_VOICES" }, (response) => {
       if (chrome.runtime.lastError || !response?.ok) {
-        setStatus("无法读取语音列表，请刷新 X Pro 页面后重试", true);
+        setStatus("无法读取语音列表，请刷新 X home 页面后重试", true);
         fillVoiceSelect([], selectedVoiceName);
         return;
       }
@@ -94,14 +94,14 @@ function loadVoices(selectedVoiceName) {
 }
 
 function readLatestNow() {
-  queryActiveXProTab((tabId) => {
+  queryActiveXHomeTab((tabId) => {
     if (!tabId) {
       return;
     }
 
     chrome.tabs.sendMessage(tabId, { type: "READ_LATEST" }, (response) => {
       if (chrome.runtime.lastError) {
-        setStatus("无法连接页面脚本，请刷新 X Pro 页面后重试", true);
+        setStatus("无法连接页面脚本，请刷新 X home 页面后重试", true);
         return;
       }
 
@@ -110,7 +110,7 @@ function readLatestNow() {
         return;
       }
 
-      setStatus(response.message || "已朗读最新动态");
+      setStatus(response.message || "已朗读 Following 最新动态");
     });
   });
 }
